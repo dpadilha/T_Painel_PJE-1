@@ -1,0 +1,21 @@
+///$tab 3 - CASOS NOVOS
+CASOS_NOVOS:
+LOAD
+    nu_processo                 AS %NR_PROCESSO,
+    variavel
+FROM [$(DirQVD)/Projetos/04_Painel_PJE/1.Extração/CASOS NOVOS/'*'.QVD]
+(qvd);
+
+Left Join(CASOS_NOVOS)
+
+LOAD
+Distinct
+  %NR_PROCESSO,
+  %ID_PROCESSO,
+  [Data Autuação],
+  ID_USUARIO,
+  %ID_ORGAO_JULGADOR
+Resident CABECALHO;
+
+STORE CASOS_NOVOS INTO $(DirQVD)/Projetos/04_Painel_PJE/2.Transformação/CASOS_NOVOS.QVD (qvd);
+DROP TABLE CASOS_NOVOS;

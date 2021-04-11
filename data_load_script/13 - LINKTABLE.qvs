@@ -1,0 +1,149 @@
+///$tab 13 - LINKTABLE
+LINKTABLE_TMP:
+LOAD
+    Distinct
+    %ID_PROCESSO&'|'&[Data Autuação]                                AS __LKT_NOVOS,
+    num(%ID_PROCESSO)                                               AS %ID_PROCESSO,
+    variavel                                                        AS DS_VARIAVEL,
+    %ID_ORGAO_JULGADOR,
+    [Data Autuação]                                                 AS %ID_TEMPO,
+    ID_USUARIO                                                      AS %ID_USUARIO,
+    'CASOS NOVOS'                                                   AS ORIGEM
+FROM [$(DirQVD)/Projetos/04_Painel_PJE/2.Transformação/CASOS_NOVOS.QVD]
+(qvd);
+
+Concatenate(LINKTABLE_TMP)
+
+LOAD
+    Distinct
+    %ID_PROCESSO&'|'&[Data Distribuicao]                            AS __LKT_DISTRIBUIDOS,
+    num(%ID_PROCESSO)                                               AS %ID_PROCESSO,
+    [Data Distribuicao]                                             AS %ID_TEMPO,
+    %ID_ORGAO_JULGADOR,
+    ID_USUARIO                                                      AS %ID_USUARIO,
+    'DISTRIBUIDOS'                                                  AS ORIGEM
+FROM [$(DirQVD)/Projetos/04_Painel_PJE/2.Transformação/CASOS_DISTRIBUIDOS.QVD]
+(qvd);
+
+Concatenate(LINKTABLE_TMP)
+
+LOAD
+    Distinct
+    %ID_PROCESSO&'|'&Date(Floor([Data da Baixa]))&'|'&%ID_ORGAO_JULGADOR     AS __LKT_BAIXADOS,
+    num(%ID_PROCESSO)                                                  AS %ID_PROCESSO,
+    variavel                                                           AS DS_VARIAVEL,
+    %ID_ORGAO_JULGADOR,
+    ID_USUARIO                                                         AS %ID_USUARIO,
+//     ID_EVENTO                                                   AS %ID_EVENTO,
+    [Data da Baixa]                                                   AS %ID_TEMPO,
+    'NOVOS ARQUIVADOS'                                                  AS ORIGEM
+FROM [$(DirQVD)/Projetos/04_Painel_PJE/2.Transformação/CASOS_BAIXADOS.QVD]
+(qvd)
+Where NUM(%ID_PROCESSO) > 0;
+
+Concatenate(LINKTABLE_TMP)
+
+LOAD
+    Distinct
+    %ID_PROCESSO&'|'&[Data Pendencia]                                 AS __LKT_PENDENTES,
+    num(%ID_PROCESSO)                                                 AS %ID_PROCESSO,
+    variavel                                                          AS DS_VARIAVEL,
+    %ID_ORGAO_JULGADOR,
+//     ID_EVENTO                                                   AS %ID_EVENTO,
+//     ID_USUARIO                                                  AS %ID_USUARIO,
+    [Data Pendencia]                                                  AS %ID_TEMPO,
+    'CASOS PENDENTES'                                                 AS ORIGEM
+FROM [$(DirQVD)/Projetos/04_Painel_PJE/2.Transformação/CASOS_PENDENTES.QVD]
+(qvd);
+
+Concatenate(LINKTABLE_TMP)
+LOAD
+    Distinct
+    %ID_PROCESSO&'|'&[Data Sentença]                                        AS __LKT_SENTENCIADOS,
+    num(%ID_PROCESSO)                                                       AS %ID_PROCESSO,
+    %ID_ORGAO_JULGADOR,
+    %ID_USUARIO,
+//     ID_EVENTO                                                   AS %ID_EVENTO,
+    "Data Sentença"                                                         AS %ID_TEMPO,
+    if([Tipo Julgamento Sentença] = 'com_resolucao_merito','COM RESOLUÇÃO DE MÉRITO',
+      if([Tipo Julgamento Sentença] = 'homologatoria','HOMOLOGATÓRIA',
+        if([Tipo Julgamento Sentença] = 'sem_resolucao_merito','SEM RESOLUÇÃO DE MÉRITO', 
+          if([Tipo Julgamento Sentença] = 'decisao','DECISÕES',
+              if([Tipo Julgamento Sentença] = 'despacho', 'DESPACHOS')))))    AS ORIGEM
+FROM [$(DirQVD)/Projetos/04_Painel_PJE/2.Transformação/CASOS_SENTENCIADOS.QVD]
+(qvd);
+
+Concatenate(LINKTABLE_TMP)
+Load
+    DISTINCT
+    %ID_PROCESSO&'|'&"Data Ativo"                                     AS __LKT_ATIVOS,
+    num(%ID_PROCESSO)                                                 AS %ID_PROCESSO,
+    %ID_ORGAO_JULGADOR,
+    "Data Ativo"                                                      AS %ID_TEMPO,
+    'ATIVOS'                                                          AS ORIGEM
+FROM [$(DirQVD)/Projetos/04_Painel_PJE/2.Transformação/PROCESSOS_ATIVOS.QVD]
+(qvd);
+
+Concatenate(LINKTABLE_TMP)
+LOAD
+  DISTINCT
+    %ID_PROCESSO&'|'&"Data Arquivado"                                 AS __LKT_ARQUIVADO,
+    num(%ID_PROCESSO)                                                 AS %ID_PROCESSO,
+    %ID_ORGAO_JULGADOR,
+    "Data Arquivado"                                                  AS %ID_TEMPO,
+    'ARQUIVADOS'                                                      AS ORIGEM
+FROM [$(DirQVD)/Projetos/04_Painel_PJE/2.Transformação/ARQUIVADOS.QVD]
+(qvd);
+
+Concatenate(LINKTABLE_TMP)
+LOAD
+  DISTINCT
+    %ID_PROCESSO&'|'&"Data Remetido"                                  AS __LKT_REMETIDO,
+    num(%ID_PROCESSO)                                                 AS %ID_PROCESSO,
+    %ID_ORGAO_JULGADOR,
+    "Data Remetido"                                                   AS %ID_TEMPO,
+    'REMETIDOS'                                                       AS ORIGEM
+FROM [$(DirQVD)/Projetos/04_Painel_PJE/2.Transformação/REMETIDOS_INSTANCIA_SUPERIOR.QVD]
+(qvd);
+
+Concatenate(LINKTABLE_TMP)
+LOAD
+  Distinct
+    %ID_ORGAO_JULGADOR&'|'&Data_Referencia                                  AS __LKT_ACERVO_HISTORICO,
+    %ID_ORGAO_JULGADOR,
+    Data_Referencia                                                         AS %ID_TEMPO,
+    'ACERVO HISTORICO'                                                      AS ORIGEM
+FROM [$(DirQVD)/Projetos/04_Painel_PJE/2.Transformação/ACERVO_HISTORICO_COMPLETO.QVD]
+(qvd);
+
+Concatenate(LINKTABLE_TMP)
+LOAD
+  %ID_ORGAO_JULGADOR&'|'&[MêsAno Evento]                                      AS __LKT_MOVIMENTOS,
+    %ID_ORGAO_JULGADOR,
+//     %ID_PROCESSO,
+    if([MêsAno Evento] = MonthName(Today()),Today(), MonthEnd([MêsAno Evento]))   AS %ID_TEMPO,
+    'MOVIMENTOS'                                  AS ORIGEM
+FROM [lib://ARQUIVOS_TODOS (tj-pb_qlik_deploy)/Projetos/04_Painel_PJE/2.Transformação/MOVIMENTOS_QUANTITATIVO.QVD]
+(qvd);
+
+
+LINKTABLE:
+NoConcatenate
+Load
+Distinct
+    *
+Resident LINKTABLE_TMP;
+Drop Table LINKTABLE_TMP;
+
+Left Join(LINKTABLE)
+
+LOAD
+    %ID_PROCESSO,
+//     %ID_ORGAO_JULGADOR,
+    %ID_CLASSE_JUDICIAL,
+    %ID_COMPETENCIA
+Resident CABECALHO;
+Drop Table CABECALHO;
+
+STORE LINKTABLE INTO $(DirQVD)/Projetos/04_Painel_PJE/2.Transformação/LINKTABLE.QVD (qvd);
+DROP TABLE LINKTABLE;

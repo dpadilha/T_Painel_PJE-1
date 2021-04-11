@@ -1,0 +1,36 @@
+///$tab 6 - CASOS PENDENTES
+CASOS_PENDENTES_TMP:
+LOAD
+  Distinct
+    nu_processo                                                     AS %NR_PROCESSO,
+    Date(MakeDate(Right(periodo_referencia,4),Left(periodo_referencia,2),'01'),'DD/MM/YYYY')      AS Data,
+    variavel
+FROM [$(DirQVD)/Projetos/04_Painel_PJE/1.Extração/CASOS PENDENTES/'*'.QVD] (qvd);
+
+Left Join(CASOS_PENDENTES_TMP)
+
+LOAD
+Distinct
+    %NR_PROCESSO,
+    %ID_PROCESSO,
+    %ID_ORGAO_JULGADOR
+Resident CABECALHO;
+
+CASOS_PENDENTES_TMP2:
+NoConcatenate
+Load
+  *,
+  if(MonthName(Data) = MonthName(today()),Date(Today(),'DD/MM/YYYY'),MonthEnd(Data))  AS [Data Pendencia]
+Resident CASOS_PENDENTES_TMP;
+Drop Table CASOS_PENDENTES_TMP;
+
+CASOS_PENDENTES:
+NoConcatenate
+Load
+  *
+Resident CASOS_PENDENTES_TMP2
+Where [Data Pendencia] >= Date#('01/01/2015','DD/MM/YYYY');
+Drop Table CASOS_PENDENTES_TMP2;
+
+STORE CASOS_PENDENTES INTO $(DirQVD)/Projetos/04_Painel_PJE/2.Transformação/CASOS_PENDENTES.QVD (qvd);
+DROP TABLE CASOS_PENDENTES;

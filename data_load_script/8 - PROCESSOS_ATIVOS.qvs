@@ -1,0 +1,38 @@
+///$tab  8 - PROCESSOS_ATIVOS
+PROCESSOS_ATIVOS:
+LOAD
+    id_processo                                                     AS %ID_PROCESSO,
+    Date(Date#(data_extracao,'YYYY-MM-DD'),'DD/MM/YYYY')            AS [Data Ativo]
+FROM [$(DirQVD)/Projetos/04_Painel_PJE/1.Extração/PROCESSOS_ATIVOS_*.qvd]
+(qvd);
+
+Left Join(PROCESSOS_ATIVOS)
+
+LOAD
+Distinct
+    %ID_PROCESSO,
+    %ID_ORGAO_JULGADOR
+Resident CABECALHO;
+
+STORE PROCESSOS_ATIVOS INTO $(DirQVD)/Projetos/04_Painel_PJE/2.Transformação/PROCESSOS_ATIVOS.QVD (qvd);
+
+ACERVO_HISTORICO:
+NoConcatenate
+LOAD
+    %ID_ORGAO_JULGADOR,
+    Data_Referencia,
+    Acervo_Historico
+FROM $(DirQVD)/Projetos/04_Painel_PJE/2.Transformação/ACERVO_HISTORICO_ATE_2020.QVD (qvd);
+
+Concatenate (ACERVO_HISTORICO)
+//CONCATENANDO VALORES HISTORICOS SALVOS EM QVD E COM ID_PROCESSO NOS QVDS
+Load
+  %ID_ORGAO_JULGADOR,
+    [Data Ativo]            AS Data_Referencia,
+    Count(DISTINCT [%ID_PROCESSO])    AS Acervo_Historico
+Resident PROCESSOS_ATIVOS
+Group By %ID_ORGAO_JULGADOR,[Data Ativo];
+DROP TABLE PROCESSOS_ATIVOS;
+
+STORE ACERVO_HISTORICO INTO $(DirQVD)/Projetos/04_Painel_PJE/2.Transformação/ACERVO_HISTORICO_COMPLETO.QVD (qvd);
+Drop Table ACERVO_HISTORICO;

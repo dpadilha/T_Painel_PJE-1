@@ -1,0 +1,51 @@
+///$tab 1 - Cabecalho
+CABECALHO_TMP:
+LOAD
+Distinct
+    nr_processo                             AS %NR_PROCESSO,
+    NUM(id_processo_trf)                    AS %ID_PROCESSO,
+    Floor(dt_autuacao)                    	AS [Data Autuação],
+    Floor(dt_distribuicao)          		AS [Data Distribuicao],
+    id_usuario_cadastro_processo            AS ID_USUARIO,
+    id_ultimo_movimento                     AS ID_EVENTO,
+    id_competencia                          AS %ID_COMPETENCIA,
+    id_orgao_julgador                       AS %ID_ORGAO_JULGADOR,
+    id_classe_judicial                      AS %ID_CLASSE_JUDICIAL
+FROM [$(DirQVD)/Projetos/04_Painel_PJE/1.Extração/TB_CABECALHO.qvd]
+(qvd)
+where cd_processo_status = 'D' and not IsNull(nr_sequencia);
+
+
+CABECALHO_TMP2:
+NoConcatenate
+Load
+  %NR_PROCESSO&'|'&MAX(%ID_PROCESSO)    AS %KEY
+Resident CABECALHO_TMP
+Group By %NR_PROCESSO;
+
+Left Join(CABECALHO_TMP2)
+
+Load
+  %NR_PROCESSO&'|'&%ID_PROCESSO       AS %KEY,
+    %NR_PROCESSO,
+    %ID_PROCESSO,
+    [Data Autuação],
+    [Data Distribuicao],
+    ID_USUARIO,
+    ID_EVENTO,
+    %ID_COMPETENCIA,
+    %ID_ORGAO_JULGADOR,
+    %ID_CLASSE_JUDICIAL
+Resident CABECALHO_TMP;
+Drop Table CABECALHO_TMP;
+
+Drop Field %KEY from CABECALHO_TMP2;
+
+
+CABECALHO:
+NoConcatenate
+Load
+  Distinct
+  *
+Resident CABECALHO_TMP2;
+Drop Table CABECALHO_TMP2;

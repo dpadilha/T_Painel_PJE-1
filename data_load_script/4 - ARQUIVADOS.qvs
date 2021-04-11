@@ -1,0 +1,19 @@
+///$tab 4 - ARQUIVADOS
+ARQUIVADOS:
+LOAD
+    id_processo     AS %ID_PROCESSO,
+    Floor(data)     AS [Data Arquivado]
+FROM [$(DirQVD)/Projetos/04_Painel_PJE/1.Extração/ARQUIVADO.qvd]
+(qvd);
+
+Left Join(ARQUIVADOS)
+
+LOAD
+Distinct
+    %ID_PROCESSO,
+    %NR_PROCESSO,
+    %ID_ORGAO_JULGADOR
+Resident CABECALHO;
+
+STORE ARQUIVADOS INTO $(DirQVD)/Projetos/04_Painel_PJE/2.Transformação/ARQUIVADOS.QVD (qvd);
+DROP TABLE ARQUIVADOS;

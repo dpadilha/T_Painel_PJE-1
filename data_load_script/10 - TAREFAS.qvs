@@ -1,0 +1,48 @@
+///$tab 10 - TAREFAS
+TAREFA:
+LOAD
+    id_processo                             AS %ID_PROCESSO,
+    id_tarefa                               AS %ID_TAREFA,
+    id_processo_instance                    AS %ID_PROCESSO_TAREFA,
+    nome_tarefa                             AS [Nome da Tarefa],
+    Floor(data_inicio_tarefa)               AS [Data Inicio Tarefa],
+    data_criacao_tarefa                 AS [Data Criação Tarefa],
+    tempo_na_tarefa                         AS [Tempo na Tarefa]
+FROM [lib://ARQUIVOS_TODOS (tj-pb_qlik_deploy)/Projetos/04_Painel_PJE/1.Extração/TAREFA.QVD]
+(qvd);
+
+TMP1:
+NoConcatenate
+Load
+  %ID_PROCESSO&'|'&Date(MAX([Data Criação Tarefa]),'DD/MM/YYYY HH:MM:SS.FFF') AS %KEY
+Resident TAREFA
+group by %ID_PROCESSO;
+
+Left Join(TMP1)
+Load
+  %ID_PROCESSO&'|'&Date([Data Criação Tarefa],'DD/MM/YYYY HH:MM:SS.FFF')    AS %KEY,
+  %ID_PROCESSO,
+    %ID_TAREFA,
+    %ID_PROCESSO_TAREFA,
+    [Nome da Tarefa],
+    [Data Inicio Tarefa],
+    [Data Criação Tarefa],
+    [Tempo na Tarefa]
+Resident TAREFA;
+Drop Table TAREFA;
+
+ULTIMA_TAREFA:
+NoConcatenate
+LOAD
+    %ID_PROCESSO,
+    %ID_TAREFA,
+    %ID_PROCESSO_TAREFA,
+    [Nome da Tarefa],
+    [Data Inicio Tarefa],
+    [Data Criação Tarefa],
+    [Tempo na Tarefa]
+Resident TMP1;
+Drop Table TMP1;
+
+STORE ULTIMA_TAREFA INTO $(DirQVD)/Projetos/04_Painel_PJE/2.Transformação/ULTIMA_TAREFA.QVD (qvd);
+DROP TABLE ULTIMA_TAREFA;

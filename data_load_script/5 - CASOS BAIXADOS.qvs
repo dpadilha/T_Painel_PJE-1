@@ -1,0 +1,307 @@
+///$tab 5 - CASOS BAIXADOS
+//PROCESSO EVENTO DA BAIXA
+  
+  BAIXA_PROCESSO:
+  NoConcatenate
+  Load
+      *,
+      Upper(Date(Floor(data_evento),'MM/YYYY'))    											AS MesAno_Evento,
+      id_processo 																			AS %ID_PROCESSO
+  FROM [$(DirQVD)/Projetos/04_Painel_PJE/1.Extração/PROCESSO_EVENTO.QVD]
+  (qvd)
+  WHERE WildMatch(cd_evento,'22','246','488','123','982','10966','85') > 0;
+
+//PROCESSO EVENTO DA BAIXA
+
+//REGRA PARA CONSIDERAR O MENOR EVENTO DE BAIXA POR ID_PROCESSO E MES-ANO
+  
+  DATA_BAIXA_1:
+  NoConcatenate
+  LOAD
+      %ID_PROCESSO&'|'&MesAno_Evento&'|'&Date(min(data_evento),'DD/MM/YYYY')                 AS %Key
+  Resident BAIXA_PROCESSO
+  group by %ID_PROCESSO,MesAno_Evento;
+
+  Left Join(DATA_BAIXA_1)
+  LOAD
+      %ID_PROCESSO&'|'&MesAno_Evento&'|'&Date(data_evento,'DD/MM/YYYY')                       AS %Key,
+      %ID_PROCESSO,
+      MesAno_Evento,
+      id_evento                                                                           	  AS ID_EVENTO,
+      id_usuario                                                                              AS ID_USUARIO,
+      floor(data_evento)                                                                      AS [Data da Baixa]
+  Resident BAIXA_PROCESSO;
+
+//REGRA PARA CONSIDERAR O MENOR EVENTO DE BAIXA POR ID_PROCESSO E MES-ANO
+
+//LEITURA DAS VARIAVEIS DE CASOS BAIXADOS
+  CASOS_BAIXADOS_TMP:
+  LOAD
+    DISTINCT
+      *
+  FROM [$(DirQVD)/Projetos/04_Painel_PJE/1.Extração/CASOS BAIXADOS/'*'.QVD]
+  (qvd);
+
+  TEMP_CASOS_BAIXADOS:
+  NoConcatenate
+  Load
+    Distinct
+    nu_processo       AS %NR_PROCESSO_BAIXADO
+  Resident CASOS_BAIXADOS_TMP;
+  
+  TEMP_ARQUIVADOS:
+  NoConcatenate
+  LOAD
+      %NR_PROCESSO                AS nu_processo,
+      Upper(Date([Data Arquivado],'MM/YYYY')) AS periodo_referencia,
+      'Arquivados'                AS variavel
+  FROM [$(DirQVD)/Projetos/04_Painel_PJE/2.Transformação/ARQUIVADOS.QVD]
+  (qvd)
+  WHERE NOT Exists(%NR_PROCESSO_BAIXADO,%NR_PROCESSO);
+  Drop Table TEMP_CASOS_BAIXADOS;
+  
+  TEMP_CASOS_NOVOS:
+  NoConcatenate
+  LOAD
+    Distinct
+      %NR_PROCESSO      AS %NR_PROCESSO_NOVO
+  FROM [$(DirQVD)/Projetos/04_Painel_PJE/2.Transformação/CASOS_NOVOS.QVD]
+  (qvd);
+  
+  Concatenate(CASOS_BAIXADOS_TMP)
+  Load
+    Distinct
+    *
+  Resident TEMP_ARQUIVADOS
+  Where Exists(%NR_PROCESSO_NOVO,nu_processo);
+  Drop Tables TEMP_CASOS_NOVOS,TEMP_ARQUIVADOS;
+  
+//
+
+//LEFT PARA TRAZER O ID_PROCESSO PARA AS VARIAVEIS JÁ QUE SÓ POSSUI O NUMERO
+
+  CASOS_BAIXADOS_TMP2:
+  NoConcatenate
+  LOAD
+      nu_processo                                   AS %NR_PROCESSO,
+      periodo_referencia,
+      variavel
+  Resident CASOS_BAIXADOS_TMP;
+  Drop Table CASOS_BAIXADOS_TMP;
+
+  Left Join(CASOS_BAIXADOS_TMP2)
+
+  LOAD
+  Distinct
+      %NR_PROCESSO,
+      %ID_PROCESSO
+  Resident CABECALHO;;
+
+//
+
+//LEFT PARA TRAZER A DATA DA BAIXA POR PROCESSO E PERIODO DE REFERENCIA
+  CASOS_BAIXADOS_TMP3:
+  NoConcatenate
+  Load
+      *,
+      %ID_PROCESSO&'|'&periodo_referencia           AS %KEY2
+  Resident CASOS_BAIXADOS_TMP2;
+  Drop Table CASOS_BAIXADOS_TMP2;
+
+  Left Join(CASOS_BAIXADOS_TMP3)
+  Load
+      %ID_PROCESSO&'|'&MesAno_Evento                AS %KEY2,
+      ID_USUARIO,
+      [Data da Baixa]
+  Resident DATA_BAIXA_1;
+  Drop Table DATA_BAIXA_1;
+//
+
+//REGRA PARA CONSIDERAR A MENOR BAIXA POR PROCESSO
+
+  DATA_BAIXA2:
+  NoConcatenate
+  LOAD
+      %ID_PROCESSO&'|'&Date(Floor(min(data_evento)),'DD/MM/YYYY')          AS %Key
+  Resident BAIXA_PROCESSO
+  group by %ID_PROCESSO;
+
+  Left Join(DATA_BAIXA2)
+  LOAD
+      %ID_PROCESSO&'|'&Date(Floor(data_evento),'DD/MM/YYYY')               AS %Key,
+      %ID_PROCESSO,
+      id_evento                                                           as ID_EVENTO,
+      id_usuario                                                          AS ID_USUARIO,
+      floor(data_evento)                                                  AS [Data da Baixa]
+  Resident BAIXA_PROCESSO;
+  Drop Table BAIXA_PROCESSO;
+
+//
+
+//MONTAGEM D FATO CASOS BAIXADOS OS QUE NÃO POSSUEM DATA BAIXA É REALIZADO O LEFT PARA TRAZER PELO MENOR EVENTO DE BAIXA
+  CASOS_BAIXADOS:
+  NoConcatenate
+  Load
+      %NR_PROCESSO,
+      periodo_referencia,
+      variavel,
+      %ID_PROCESSO
+  Resident CASOS_BAIXADOS_TMP3
+  WHERE IsNull([Data da Baixa]);
+
+  Left Join(CASOS_BAIXADOS)
+  Load
+      %ID_PROCESSO,
+      ID_USUARIO,
+      [Data da Baixa]
+  Resident DATA_BAIXA2;
+  Drop Table DATA_BAIXA2;
+
+    Concatenate(CASOS_BAIXADOS)
+
+    Load
+        *
+    Resident CASOS_BAIXADOS_TMP3
+    WHERE not IsNull([Data da Baixa]);
+//
+
+Drop Table CASOS_BAIXADOS_TMP3;
+
+Left Join(CASOS_BAIXADOS)
+LOAD
+Distinct
+    %ID_PROCESSO,
+    [Data Autuação],
+    %ID_ORGAO_JULGADOR
+Resident CABECALHO;
+
+TEMP:
+  NoConcatenate
+  Load
+    Distinct
+    %ID_ORGAO_JULGADOR
+  Resident CASOS_BAIXADOS;
+  
+  Left Join(TEMP)
+  
+  Load
+  Distinct
+  MonthName(Date(today()-RowNo()+1))              AS Mes_Ano
+  AutoGenerate Today() + 1 - MakeDate(2015,01,01);
+
+  TEMP2:
+  NoConcatenate
+  Load
+    Distinct
+    %ID_ORGAO_JULGADOR&'|'&Mes_Ano                AS %KEY,
+    %ID_ORGAO_JULGADOR,
+    Date(MonthEnd(Mes_Ano))                   AS Data
+  Resident TEMP;
+  Drop Table TEMP;
+  
+  Left Join(TEMP2)
+   
+  LOAD
+    %ID_ORGAO_JULGADOR&'|'&MonthName("Data da Baixa")       AS %KEY,
+    %ID_PROCESSO,
+    %NR_PROCESSO,
+    periodo_referencia,
+    variavel,
+    ID_USUARIO,
+    "Data da Baixa",
+    "Data Autuação"
+Resident CASOS_BAIXADOS;
+Drop Table CASOS_BAIXADOS;
+
+ TEMP3:
+ NoConcatenate
+ Load 
+  %ID_ORGAO_JULGADOR,
+    if(isnull(%ID_PROCESSO),RowNo()*-1,[%ID_PROCESSO])    AS [%ID_PROCESSO],
+  %NR_PROCESSO,
+    periodo_referencia,
+    variavel,
+    ID_USUARIO,
+    if(IsNull("Data da Baixa"),Data,"Data da Baixa")        AS "Data da Baixa",
+    "Data Autuação"
+  Resident TEMP2;
+  Drop Table TEMP2;
+  
+  Rename Table TEMP3 to CASOS_BAIXADOS;
+  
+//SALVANDO QVD DE CASOS BAIXADOS
+STORE CASOS_BAIXADOS INTO $(DirQVD)/Projetos/04_Painel_PJE/2.Transformação/CASOS_BAIXADOS.QVD (qvd);
+
+// CRIANDO LINHA DE ACUMULADO DOS ULTIMOS 12 MESES
+  CASOS_BAIXADOS_TMP1:
+  NoConcatenate
+  LOAD
+    Distinct
+      %ID_PROCESSO,
+      %ID_ORGAO_JULGADOR,
+      MonthName("Data da Baixa")  AS MesAno_Baixa
+  Resident CASOS_BAIXADOS;
+
+//DROPANDO CASOS BAIXADOS JÁ SALVO NO QVD
+  DROP TABLE CASOS_BAIXADOS;
+    
+// AGRUPANDO A QUANTIDADE DE PROCESSOS BAIXADOS POR ID_OJ E MES ANO
+  CASOS_BAIXADOS_TMP2:
+  NoConcatenate
+  Load
+      %ID_ORGAO_JULGADOR,
+      MesAno_Baixa,
+      Count(DISTINCT [%ID_PROCESSO])   AS  QTD_CASOS_BAIXADOS_MES
+  Resident CASOS_BAIXADOS_TMP1
+  WHERE NUM(%ID_PROCESSO) > 0
+  Group by %ID_ORGAO_JULGADOR,MesAno_Baixa;
+  
+  Concatenate(CASOS_BAIXADOS_TMP2)
+  
+  Load
+    %ID_ORGAO_JULGADOR,
+    MesAno_Baixa,
+    0                 AS QTD_CASOS_BAIXADOS_MES
+  Resident CASOS_BAIXADOS_TMP1
+  WHERE NUM(%ID_PROCESSO) < 0;
+  
+  Drop Table CASOS_BAIXADOS_TMP1;
+  
+//ORDENANDO POR OJ E MES_ANO
+  CASOS_BAIXADOS_TMP3:
+  NoConcatenate
+  Load
+      *
+  Resident CASOS_BAIXADOS_TMP2
+  Order by %ID_ORGAO_JULGADOR,MesAno_Baixa ASC;
+  Drop Table CASOS_BAIXADOS_TMP2;
+  
+//CRIANDO A ROWNOW()
+  CASOS_BAIXADOS_TMP4:
+  NoConcatenate
+  Load
+      *,
+      IF(RowNo() = 1,1,
+          IF(%ID_ORGAO_JULGADOR= Peek(%ID_ORGAO_JULGADOR), Peek(Linha)+1,
+              1)) AS Linha
+  Resident CASOS_BAIXADOS_TMP3;
+  Drop Table CASOS_BAIXADOS_TMP3;
+
+//ACUMULANDO OS ULTIMOS 12 MESES POR MES
+  CASOS_BAIXADOS_ACUMULADO:
+  NoConcatenate
+  Load
+      %ID_ORGAO_JULGADOR,
+      MesAno_Baixa,
+      QTD_CASOS_BAIXADOS_MES,
+      If(Linha >=12,RangeSum(QTD_CASOS_BAIXADOS_MES,Peek(QTD_CASOS_BAIXADOS_MES,-1),Peek(QTD_CASOS_BAIXADOS_MES,-2),
+                                  Peek(QTD_CASOS_BAIXADOS_MES,-3),Peek(QTD_CASOS_BAIXADOS_MES,-4),
+                                  Peek(QTD_CASOS_BAIXADOS_MES,-5),Peek(QTD_CASOS_BAIXADOS_MES,-6),
+                                  Peek(QTD_CASOS_BAIXADOS_MES,-7),Peek(QTD_CASOS_BAIXADOS_MES,-8),
+                                  Peek(QTD_CASOS_BAIXADOS_MES,-9),Peek(QTD_CASOS_BAIXADOS_MES,-10),
+                                  Peek(QTD_CASOS_BAIXADOS_MES,-11)), QTD_CASOS_BAIXADOS_MES) AS QTD_CASOS_12_MONTHS
+  Resident CASOS_BAIXADOS_TMP4;
+  Drop Table CASOS_BAIXADOS_TMP4;
+
+STORE CASOS_BAIXADOS_ACUMULADO INTO $(DirQVD)/Projetos/04_Painel_PJE/2.Transformação/CASOS_BAIXADOS_ACUMULADO.QVD (qvd);
+DROP TABLE CASOS_BAIXADOS_ACUMULADO;

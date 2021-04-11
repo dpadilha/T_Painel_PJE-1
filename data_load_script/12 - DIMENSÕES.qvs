@@ -1,0 +1,317 @@
+///$tab 12 - DIMENSÕES
+[Dimensão Órgão Julgador]:
+NoConcatenate
+LOAD
+    id_orgao_julgador AS %ID_ORGAO_JULGADOR,
+    ds_orgao_julgador AS [Órgão Julgador],
+    ds_ato_criacao    AS [COD. CNJ]/*,
+    in_ativo,
+    in_instancia,
+    nr_ddd_telefone,
+    nr_telefone,
+    nr_ddd_fax,
+    nr_fax,
+    ds_email,
+    id_aplicacao_classe,
+    in_novo_orgao_julgador,
+    dt_criacao,
+    ds_ato_criacao,
+    nr_tempo_audiencia,
+    id_jurisdicao,
+    id_localizacao,
+    nr_vara,
+    in_numeracao_automatica,
+    ds_sigla,
+    ds_codigo_origem,
+    nr_presuncao_correios,
+    in_posto_avancado,
+    ds_orgao_julgador_ordem_alfabetica */
+FROM $(DirQVD)/1.EXTRACAO/PJE/tb_orgao_julgador.qvd (qvd);
+
+STORE [Dimensão Órgão Julgador] INTO $(DirQVD)/Projetos/04_Painel_PJE/2.Transformação/Dim_OrgaoJulgador.QVD (qvd);
+DROP TABLE [Dimensão Órgão Julgador];
+
+DIM_EVENTO:
+LOAD
+    id_evento                       AS %ID_EVENTO,
+    ds_evento                       AS [Desc. Evento],
+    cd_evento                       AS [Cod. Evento]
+FROM [lib://ARQUIVOS_TODOS (tj-pb_qlik_deploy)/1.EXTRACAO/PJE/tb_evento.qvd]
+(qvd);
+
+STORE DIM_EVENTO INTO $(DirQVD)/Projetos/04_Painel_PJE/2.Transformação/Dim_Evento.QVD (qvd);
+DROP TABLE DIM_EVENTO;
+
+[Dimensão Classe Judicial]:
+NoConcatenate
+LOAD
+    id_classe_judicial AS %ID_CLASSE_JUDICIAL,
+    cd_classe_judicial AS [Código Classe Judicial],
+    ds_classe_judicial AS [Classe Judicial] /*,
+    ds_classe_judicial_sigla,
+    ds_lei,
+    in_ativo,
+    ds_classe_judicial_glossario,
+    in_ignora_prevencao,
+    in_ignora_compensacao,
+    cd_classe_outro,
+    in_possui_custa,
+    ds_natureza,
+    ds_norma,
+    ds_lei_artigo,
+    in_inicial,
+    in_segredo_justica,
+    in_complementar,
+    id_classe_judicial_pai,
+    id_fluxo,
+    in_incidental,
+    in_recursal,
+    in_possui_filhos,
+    ds_classe_judicial_completo,
+    ds_mensagem,
+    in_exige_revisor,
+    in_exige_pauta,
+    tp_processo_referencia,
+    in_relator_revisor,
+    in_pauta_antec_revisao,
+    vl_peso,
+    in_reclama_polo_passivo,
+    in_jus_postulandi,
+    ds_icone,
+    in_exige_autoridade,
+    in_controla_valor_causa,
+    in_designa_aud_errovc,
+    nr_piso_valor_causa,
+    nr_teto_valor_causa,
+    in_exige_numeracao_propria,
+    id_tipo_audiencia,
+    in_exige_fiscal_lei,
+    in_permite_autoridade,
+    tp_exige_revisor,
+    tp_composicao_julgamento,
+    in_habilitar_mascara_proc_ref,
+    in_permite_numeracao_manual,
+    in_sessao_continua,
+    in_remessa_instancia,
+    in_publico,
+    in_exige_doc_identificacao,
+    id_tipo_processo_documento,
+    cd_classe_judicial_pai,
+    nr_faixa_inferior,
+    nr_faixa_superior,
+    nr_nivel,
+    in_padrao_sgt,
+    ds_motivo_inativacao */
+FROM $(DirQVD)/1.EXTRACAO/PJE/tb_classe_judicial.qvd (qvd);
+
+STORE [Dimensão Classe Judicial] INTO $(DirQVD)/Projetos/04_Painel_PJE/2.Transformação/Dim_ClasseJudicial.QVD (qvd);
+DROP TABLE [Dimensão Classe Judicial];
+
+[Dimensão Competência]:
+NoConcatenate
+LOAD
+    id_competencia AS %ID_COMPETENCIA,
+    ds_competencia AS [Competência] /*,
+    in_ativo,
+    id_competencia_pai,
+    ds_competencia_completo,
+    id_dimensao_alcada,
+    in_categoria_prazo_processual,
+    in_categoria_prazo_ciencia,
+    ds_tipo_servidor_protocola,
+    in_usuario_externo_protocola,
+    cod_tipo_calc_meio_comunicacao,
+    in_usuario_protocola_orgao_julgador */
+FROM $(DirQVD)/1.EXTRACAO/PJE/tb_competencia.qvd (qvd);
+
+STORE [Dimensão Competência] INTO $(DirQVD)/Projetos/04_Painel_PJE/2.Transformação/Dim_Competencia.QVD (qvd);
+DROP TABLE [Dimensão Competência];
+
+[Dimensão Servidor]:
+NoConcatenate
+LOAD
+    Max(MATRICULA)          AS [Matrícula do Servidor]
+FROM  $(DirQVD)/1.EXTRACAO/RH/vw_situaçaofuncional.qvd (qvd)
+Where IsNull(DT_SAIDA)
+GROUP BY CPF;
+
+Left Join([Dimensão Servidor])
+
+LOAD
+    MATRICULA               AS %MATRICULA,
+    MATRICULA               AS [Matrícula do Servidor],
+    Text(ID_PESSOA)         AS ID_PESSOA,    
+    Upper(DS_PESSOA)        AS [Nome do Servidor]
+FROM $(DirQVD)/1.EXTRACAO/RH/vw_situaçaofuncional.qvd (qvd);
+
+Left Join([Dimensão Servidor])
+
+LOAD
+    TEXT(FK_PESSOA)         AS ID_PESSOA,
+    ID_PESSOAFISICA         AS ID_PESSOAFISICA,    
+    Text(CPF)               AS [CPF do Servidor]
+FROM $(DirQVD)\1.EXTRACAO\RH\TB_PESSOAFISICA.qvd (qvd);
+
+Left Join([Dimensão Servidor])
+
+LOAD
+    FK_PESSOAFISICA         AS ID_PESSOAFISICA, 
+    FK_CARGOEFETIVO         AS ID_CARGOEFETIVO,
+    FK_CARGOCOMISSAO        AS ID_CARGOCOMISSAO,
+    FK_SETOREXERCICIO       AS ID_SETOR,
+    FK_CATEGORIAFUNC        AS ID_CATEGORIAFUNC
+FROM $(DirQVD)\1.EXTRACAO\RH\TB_SERVIDOR.qvd (qvd);
+
+Left Join([Dimensão Servidor])
+
+LOAD
+    ID_SETOR,
+    FK_ORGAO                AS ID_ORGAO,
+    DS_SETOR                AS [Setor em Exercício do Servidor]
+FROM $(DirQVD)\1.EXTRACAO\RH\TB_SETOR.qvd (qvd);
+
+Left Join([Dimensão Servidor])
+
+LOAD
+    ID_ORGAO,
+    FK_COMARCA              AS ID_COMARCA,
+    DS_ORGAO                AS [Órgão do Servidor]
+FROM $(DirQVD)\1.EXTRACAO\RH\TB_ORGAO.qvd (qvd);
+
+Left Join([Dimensão Servidor])
+
+LOAD
+    ID_COMARCA,
+    DS_COMARCA              AS [Comarca do Servidor]
+FROM $(DirQVD)\1.EXTRACAO\RH\TB_COMARCA.qvd (qvd);
+
+Left Join([Dimensão Servidor])
+
+LOAD
+    ID_CARGOEFETIVO,
+    DS_CARGOEFETIVO         AS [Cargo Efetivo do Servidor]
+FROM $(DirQVD)\1.EXTRACAO\RH\TB_CARGOEFETIVO.qvd (qvd);
+
+Left Join([Dimensão Servidor])
+
+LOAD
+    ID_CARGOCOMISSAO,
+    DS_CARGOCOMISSAO        AS [Cargo Comissionado do Servidor]
+FROM $(DirQVD)\1.EXTRACAO\RH\TB_CARGOCOMISSAO.qvd (qvd);
+
+STORE [Dimensão Servidor] INTO $(DirQVD)/Projetos/04_Painel_PJE/2.Transformação/Dim_Servidor.QVD (qvd);
+DROP TABLE [Dimensão Servidor];
+
+[Dimensão Cabecalho]:
+LOAD
+    id_processo_trf                                             AS %ID_PROCESSO,
+    nr_processo                                                 AS [Número do Processo],
+    dt_distribuicao                                             AS [Data Distribuição], 
+    id_ultimo_movimento                     AS %ID_ULTIMO_MOVIMENTO,
+
+    nr_identificacao_orgao_justica,
+    if(cd_processo_status = 'E','Elaboração',
+        if(cd_processo_status = 'D','Distribuido',
+            if(cd_processo_status = 'V','Validado')))           AS [Status do Processo Cabeçalho],
+    SubField(ds_jurisdicao,'-',1)                               AS [Comarca OJ],
+    Floor(dt_autuacao)                                          AS [Data Autuação],
+    ds_orgao_julgador_cargo                                     AS Acervo,
+    ds_competencia                                              AS [Desc. Competência Cabeçalho],
+    ds_classe_judicial                                          AS [Desc. Classe Judicial Cabeçalho],
+    ds_assunto_principal                                        AS [Desc. Assunto Principal Cabeçalho]
+//     ds_ultimo_movimento                                         AS [Desc. do Último Movimento],
+//     Today() - Floor(dt_ultimo_movimento)                   AS [Tempo Movimento]
+//     floor(dt_ultimo_movimento)                                  AS [Data Último Movimento]
+FROM [$(DirQVD)/Projetos/04_Painel_PJE/1.Extração/TB_CABECALHO.qvd]
+(qvd);
+
+Left Join ([Dimensão Cabecalho])
+
+LOAD
+    %ID_PROCESSO,
+    "Nome da Tarefa"                      AS [Nome da Última Tarefa],
+    [Tempo na Tarefa]
+FROM [lib://ARQUIVOS_TODOS (tj-pb_qlik_deploy)/Projetos/04_Painel_PJE/2.Transformação/ULTIMA_TAREFA.QVD]
+(qvd);
+
+Left Join([Dimensão Cabecalho])
+LOAD
+    id_processo_evento                      AS %ID_ULTIMO_MOVIMENTO,
+    floor(data_evento)                                      AS [Data Último Movimento],
+    ds_evento                         AS [Desc. do Último Movimento]
+FROM [lib://ARQUIVOS_TODOS (tj-pb_qlik_deploy)/Projetos/04_Painel_PJE/1.Extração/PROCESSO_EVENTO.QVD]
+(qvd);
+
+STORE [Dimensão Cabecalho] INTO $(DirQVD)/Projetos/04_Painel_PJE/2.Transformação/Dimensão_Cabecalho.QVD (qvd);
+DROP TABLE [Dimensão Cabecalho];
+
+Dim_Usuario_tmp:
+LOAD
+    id_pessoa           AS %ID_USUARIO
+FROM [lib://ARQUIVOS_TODOS (tj-pb_qlik_deploy)/Projetos/04_Painel_PJE/1.Extração/tb_pessoa.QVD]
+(qvd)
+where in_tipo_pessoa = 'F';
+
+Left Join(Dim_Usuario_tmp)
+
+LOAD
+    id_pessoa_fisica    AS %ID_USUARIO,
+    id_profissao        AS %ID_PROFISSAO
+FROM [lib://ARQUIVOS_TODOS (tj-pb_qlik_deploy)/Projetos/04_Painel_PJE/1.Extração/tb_pessoa_fisica.QVD]
+(qvd);
+
+Left Join(Dim_Usuario_tmp)
+
+LOAD
+    id_profissao        AS %ID_PROFISSAO,
+    ds_profissao        AS Profissão
+FROM [lib://ARQUIVOS_TODOS (tj-pb_qlik_deploy)/Projetos/04_Painel_PJE/1.Extração/tb_profissao.QVD]
+(qvd);
+
+Left Join(Dim_Usuario_tmp)
+LOAD
+    Distinct
+    id_usuario          AS %ID_USUARIO,
+    ds_nome             AS [Nome do Servidor]
+FROM [lib://ARQUIVOS_TODOS (tj-pb_qlik_deploy)/Projetos/04_Painel_PJE/1.Extração/tb_usuario_login.QVD]
+(qvd);
+
+Dim_Usuario:
+NoConcatenate
+LOAD
+    id                  AS %ID_USUARIO,
+    nr_matricula        AS %MATRICULA
+FROM [lib://ARQUIVOS_TODOS (tj-pb_qlik_deploy)/Projetos/04_Painel_PJE/1.Extração/tb_magistrado.QVD]
+(qvd);
+
+Left Join(Dim_Usuario)
+
+Load
+    %ID_USUARIO,
+    Profissão,
+    [Nome do Servidor]
+Resident Dim_Usuario_tmp;
+Drop Table Dim_Usuario_tmp;
+
+STORE Dim_Usuario INTO $(DirQVD)/Projetos/04_Painel_PJE/2.Transformação/Dim_Usuario.QVD (qvd);
+DROP TABLE Dim_Usuario;
+
+Dim_Etiquetas:
+LOAD
+    id_processo                 AS %ID_PROCESSO_ETIQUETA,
+    ds_tag_completo             AS Etiqueta
+FROM [lib://ARQUIVOS_TODOS (tj-pb_qlik_deploy)/Projetos/04_Painel_PJE/1.Extração/ETIQUETAS.QVD]
+(qvd);
+
+STORE Dim_Etiquetas INTO $(DirQVD)/Projetos/04_Painel_PJE/2.Transformação/Dim_Etiquetas.QVD (qvd);
+DROP TABLE Dim_Etiquetas;
+
+Dim_Grupo_OJ:
+LOAD
+    Ds_competencia                  AS Grupo,
+    id_orgao_julgador               AS %ID_ORGAO_JULGADOR
+FROM [$(DirQVD)/Projetos/04_Painel_PJE/Arquivos/Unidades - Grupos de Competencia.xlsx]
+(ooxml, embedded labels, table is Planilha1);
+
+STORE Dim_Grupo_OJ INTO $(DirQVD)/Projetos/04_Painel_PJE/2.Transformação/Dim_Grupo_OJ.QVD (qvd);
+DROP TABLE Dim_Grupo_OJ;

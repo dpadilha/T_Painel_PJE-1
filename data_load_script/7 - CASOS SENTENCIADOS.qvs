@@ -1,0 +1,52 @@
+///$tab 7 - CASOS SENTENCIADOS
+CASOS_SENTENCIADOS:
+LOAD
+    Distinct
+    Floor(data)                                 AS [Data Sentença],
+    id_processo                                 AS %ID_PROCESSO,
+    id_usuario                                  AS %ID_USUARIO,
+//     id_orgao_julgador                           AS %ID_ORGAO_JULGADOR,
+    tipo_julgamento                             AS [Tipo Julgamento Sentença],
+//     id_processo_trf&'|'&id_processo_evento      AS %KEY_EVENTO,
+    id_processo_evento                          AS %ID_PROCESSO_EVENTO,
+    1                                           AS QTD_SENTENCIADO
+FROM [$(DirQVD)/Projetos/04_Painel_PJE/1.Extração/SENTENCA.QVD]
+(qvd);
+
+Concatenate(CASOS_SENTENCIADOS)
+LOAD
+    Floor(data)                                 AS [Data Sentença],
+    id_processo                                 AS %ID_PROCESSO,
+    id_usuario                                  AS %ID_USUARIO,
+//     id_orgao_julgador                           AS %ID_ORGAO_JULGADOR,
+    tipo_prod                                   AS [Tipo Julgamento Sentença],
+//     id_processo_trf&'|'&id_processo_evento      AS %KEY_EVENTO,
+    id_processo_evento                          AS %ID_PROCESSO_EVENTO,
+    1                                           AS QTD_SENTENCIADO
+FROM [$(DirQVD)/Projetos/04_Painel_PJE/1.Extração/DECISAO.QVD]
+(qvd);
+
+Concatenate(CASOS_SENTENCIADOS)
+LOAD
+    Floor(data)                                 AS [Data Sentença],
+    id_processo                                 AS %ID_PROCESSO,
+    id_usuario                                  AS %ID_USUARIO,
+//     id_orgao_julgador                           AS %ID_ORGAO_JULGADOR,
+    'despacho'                              AS [Tipo Julgamento Sentença],
+//     id_processo_trf&'|'&id_processo_evento      AS %KEY_EVENTO,
+    id_processo_evento                          AS %ID_PROCESSO_EVENTO,
+    1                                           AS QTD_SENTENCIADO
+FROM [$(DirQVD)/Projetos/04_Painel_PJE/1.Extração/DESPACHO.QVD]
+(qvd);
+
+
+Left Join(CASOS_SENTENCIADOS)
+
+LOAD
+Distinct
+    %ID_PROCESSO,
+    %ID_ORGAO_JULGADOR
+Resident CABECALHO;
+
+STORE CASOS_SENTENCIADOS INTO $(DirQVD)/Projetos/04_Painel_PJE/2.Transformação/CASOS_SENTENCIADOS.QVD (qvd);
+DROP TABLE CASOS_SENTENCIADOS;

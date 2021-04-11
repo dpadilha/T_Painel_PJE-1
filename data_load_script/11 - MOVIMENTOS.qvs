@@ -1,0 +1,21 @@
+///$tab 11 - MOVIMENTOS
+MOVIMENTOS:
+LOAD
+    id_processo_evento            AS %ID_PROCESSO_EVENTO,
+    MonthName(Floor(dt_movimento))      AS [MêsAno Evento],
+    id_orgao_julgador           AS %ID_ORGAO_JULGADOR
+FROM [lib://ARQUIVOS_TODOS (tj-pb_qlik_deploy)/Projetos/04_Painel_PJE/1.Extração/MOVIMENTOS.QVD]
+(qvd);
+
+MOVIMENTOS_QUANTITATIVO:
+NoConcatenate
+Load
+  %ID_ORGAO_JULGADOR,
+    [MêsAno Evento],
+    Count(DISTINCT %ID_PROCESSO_EVENTO)   AS QTD_MOVIMENTOS
+Resident MOVIMENTOS
+Group By %ID_ORGAO_JULGADOR,[MêsAno Evento];
+Drop Table MOVIMENTOS;
+
+STORE MOVIMENTOS_QUANTITATIVO INTO $(DirQVD)/Projetos/04_Painel_PJE/2.Transformação/MOVIMENTOS_QUANTITATIVO.QVD (qvd);
+DROP TABLE MOVIMENTOS_QUANTITATIVO;
